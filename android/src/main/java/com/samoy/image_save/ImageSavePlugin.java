@@ -95,27 +95,47 @@ public class ImageSavePlugin implements MethodCallHandler, PluginRegistry.Reques
         if (albumName == null) {
             albumName = getApplicationName();
         }
-        try {
+        if(Build.VERSION.SDK_INT >= 29){
+            String mimeType = URLConnection.getFileNameMap().getContentTypeFor(imageName);
+            String fileName = imageName;
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME,fileName);
+            values.put(MediaStore.MediaColumns.MIME_TYPE, mimeType);
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DCIM);
+            ContentResolver contentResolver = context.getContentResolver();
+            Uri uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+            if(uri == null){
+                return false;
+            }
+            try {
+                OutputStream out = contentResolver.openOutputStream(uri);
+                out.write(data);
+                out.close();
+                return true;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        else{
             File parentDir = new File(Environment.getExternalStoragePublicDirectory(DIRECTORY_PICTURES), albumName);
-            parentDir.mkdirs();
-
+            if (!parentDir.exists()) {
+                parentDir.mkdir();
+            }
             File file = new File(parentDir, imageName);
-            if (file.exists()) {
-                if (!overwriteSameNameFile) {
+            if (!overwriteSameNameFile) {
+                if (file.exists()) {
                     throw new IOException("File already exists");
                 }
-            } else {
-                file.createNewFile();
             }
-
-            FileOutputStream fos = new FileOutputStream(file, false);
-            fos.write(data);
-            fos.close();
-
-            context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file.getAbsoluteFile())));
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
+            try {
+                FileOutputStream fos = new FileOutputStream(file);
+                fos.write(data);
+                fos.close();
+                context.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file.getAbsoluteFile())));
+                return true;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         return false;
     }
@@ -132,18 +152,15 @@ public class ImageSavePlugin implements MethodCallHandler, PluginRegistry.Reques
             result.error("-1", "No SD Card found.", "Couldn't obtain external storage.");
             return;
         }
+        String filesDirPath = files.getPath();
 
+        File parentDir = new File(filesDirPath);
+        if (!parentDir.exists()) {
+            parentDir.mkdir();
+        }
+        File file = new File(parentDir, imageName);
         try {
-            String filesDirPath = files.getPath();
-            File parentDir = new File(filesDirPath);
-            parentDir.mkdirs();
-
-            File file = new File(parentDir, imageName);
-            if (!file.exists()) {
-                file.createNewFile();
-            }
-
-            FileOutputStream fos = new FileOutputStream(file, false);
+            FileOutputStream fos = new FileOutputStream(file);
             fos.write(data);
             fos.flush();
             fos.close();
