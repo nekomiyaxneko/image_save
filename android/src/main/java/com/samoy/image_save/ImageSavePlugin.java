@@ -3,11 +3,14 @@ package com.samoy.image_save;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ContentValues;
+import android.content.ContentResolver;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Environment;
 import android.widget.Toast;
+import android.provider.MediaStore;
 
 import androidx.core.app.ActivityCompat;
 
@@ -15,8 +18,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.net.URLConnection;
 
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -95,7 +100,7 @@ public class ImageSavePlugin implements MethodCallHandler, PluginRegistry.Reques
         if (albumName == null) {
             albumName = getApplicationName();
         }
-        if(Build.VERSION.SDK_INT >= 29){
+        if(android.os.Build.VERSION.SDK_INT >= 29){
             String mimeType = URLConnection.getFileNameMap().getContentTypeFor(imageName);
             String fileName = imageName;
             ContentValues values = new ContentValues();
